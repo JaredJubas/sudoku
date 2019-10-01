@@ -13,4 +13,4 @@ python game.py
 ```
 To change the number of numbers that are removed, change the "remove" variable found on line 314. 
 # Demo
-![Sudoku Demo](Sudoku demo.gif)
+![Demo](sudoku_demo.gif)
