@@ -11,7 +11,14 @@ pygame.font.init()
 
 
 class Board:
-    def __init__(self, row, col, width, height, grid, solution_board, screen):
+    """The Sudoku board."""
+
+    def __init__(self, row: int, col: int, width: int, height: int, grid: List[List[int]],
+                 solution_board: List[List[int]], screen: Surface) -> None:
+        """
+        Initialize the Board with row, col, width, height, the grid which is the board being displayed, the solution
+        board, and the screen that the board is displayed on.
+        """
         self.row = row
         self.col = col
         self.width = width
@@ -25,22 +32,6 @@ class Board:
         self.squares = [[Square(self.board[i][j], i, j, self.gap_x, self.gap_y) for i in range(row)]
                         for j in range(col)]
         self.selected = None
-
-    def add_text(self, screen: Surface, current_time: int, fnt: Font) -> None:
-        """
-        Add the current_time to screen to be displayed above the game board. Add a box for a button to check
-        the solution below the bottom left of the board. Both texts will be displayed using the font fnt.
-        """
-        black = (0, 0, 0)
-        text = fnt.render("Time: " + format_time(current_time), 1, black)
-        window.blit(text, ((window.get_width() - text.get_width()) / 2, (self.gap_y - text.get_height()) / 2))
-        text = fnt.render("Check", 1, black)
-        rect_width = text.get_width() + 20
-        rect_height = text.get_height() + 10
-        x = self.gap_x + (50 * 3 - rect_width) // 2
-        y = self.y_max + (self.gap_y - rect_height) // 2
-        pygame.draw.rect(screen, (255, 204, 204), (x, y, rect_width, rect_height))
-        window.blit(text, (x + (rect_width - text.get_width()) / 2, y + (rect_height - text.get_height()) / 2))
 
     def draw_board(self, screen: Surface, current_time: int, fnt: Font) -> None:
         """
@@ -69,19 +60,21 @@ class Board:
             self.squares[i][j].draw_squares(screen, fnt)
         pygame.display.update()
 
-    def select(self, row: int, col: int) -> None:
+    def add_text(self, screen: Surface, current_time: int, fnt: Font) -> None:
         """
-        Mark the square at row row and column col as selected.
+        Add the current_time to screen to be displayed above the game board. Add a box for a button to check
+        the solution below the bottom left of the board. Both texts will be displayed using the font fnt.
         """
-        self.reset_selected()
-        self.squares[row][col].selected = True
-
-    def reset_selected(self) -> None:
-        """
-        Mark all squares in the grid is not selected.
-        """
-        for i, j in itertools.product(range(self.row), range(self.col)):
-            self.squares[i][j].selected = False
+        black = (0, 0, 0)
+        text = fnt.render("Time: " + format_time(current_time), 1, black)
+        window.blit(text, ((window.get_width() - text.get_width()) / 2, (self.gap_y - text.get_height()) / 2))
+        text = fnt.render("Check", 1, black)
+        rect_width = text.get_width() + 20
+        rect_height = text.get_height() + 10
+        x = self.gap_x + (50 * 3 - rect_width) // 2
+        y = self.y_max + (self.gap_y - rect_height) // 2
+        pygame.draw.rect(screen, (255, 204, 204), (x, y, rect_width, rect_height))
+        window.blit(text, (x + (rect_width - text.get_width()) / 2, y + (rect_height - text.get_height()) / 2))
 
     def get_square(self, pos: Tuple[int], fnt: Font) -> bool:
         """
@@ -132,9 +125,29 @@ class Board:
             return True
         return False
 
+    def select(self, row: int, col: int) -> None:
+        """
+        Mark the square at row row and column col as selected.
+        """
+        self.reset_selected()
+        self.squares[row][col].selected = True
+
+    def reset_selected(self) -> None:
+        """
+        Mark all squares in the grid is not selected.
+        """
+        for i, j in itertools.product(range(self.row), range(self.col)):
+            self.squares[i][j].selected = False
+
 
 class Square:
-    def __init__(self, value, row, col, gap_x, gap_y):
+    """A square in the Sudoku board."""
+
+    def __init__(self, value: int, row: int, col: int, gap_x: int, gap_y: int) -> None:
+        """
+        Initialize the Square with a value, row, col, gap_x between the sides of the screen and where the board is,
+        and gap_y between the top and bottom fo the screen and where the board is.
+        """
         self.value = value
         self.row = row
         self.col = col
@@ -166,68 +179,22 @@ class Square:
         return
 
 
-def check_full(grid: List[List[int]]) -> bool:
+def create_board() -> List[List[int]]:
     """
-    Return True if every square in grid is full and False otherwise.
+    Return a nested list of the 9x9 grid with 0s in every position.
     """
-    for row, col in itertools.product(range(9), range(9)):
-        if grid[row][col] == 0 or grid[row][col] == -1:
-            return False
-    return True
-
-
-def check_solution(grid: List[List[int]]) -> bool:
-    """
-    Return True if the solution in grid is correct and False otherwise.
-    """
-    num_list = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for row, col in itertools.product(range(9), range(9)):
-        for num in num_list:
-            # check if num is in both the current row and column
-            if num not in grid[row] or num not in (grid[n][col] for n in range(len(grid))):
-                return False
-            # check if num is in the current 3x3 square
-            if not check_square(row, col, num, grid):
-                return False
-    return True
-
-
-def check_square(row: int, col: int, num: int, grid: List[List[int]]) -> bool:
-    """
-    Return True if num exists in the current 3x3 square in grid indicated by the current row row and column col.
-    Return False otherwise.
-    """
-    first = col // 3 * 3
-    second = first + 3
-    first_range = row // 3 * 3
-    second_range = first_range + 3
-    square = [grid[i][first:second] for i in range(first_range, second_range)]
-
-    if num in (square[0] + square[1] + square[2]):
-        return True
-    return False
-
-
-def check_conditions(grid: List[List[int]], number, row, col) -> bool:
-    """
-    Return True if the number number can be a valid solution of the grid grid at the current row row and column col.
-    Return False otherwise.
-    """
-    if number not in grid[row]:
-        if number not in (grid[n][col] for n in range(len(grid))):
-            if not check_square(row, col, number, grid):
-                return True
-    return False
-
-
-def refill_row(row: int, grid: List[List[int]]) -> List[List[int]]:
-    """
-    Return a version of the grid grid where all the numbers in the row row are set to 0.
-    """
-    for n in range(9):
-        grid[row][n] = 0
-    fill_row(row, grid)
+    grid = []
+    for num in range(9):
+        grid.append([0, 0, 0, 0, 0, 0, 0, 0, 0])
     return grid
+
+
+def fill_board(grid: List[List[int]]) -> None:
+    """
+    Fill the starting grid grid going 1 row at a time.
+    """
+    for row in range(len(grid)):
+        fill_row(row, grid)
 
 
 def fill_row(row: int, grid: List[List[int]]) -> None:
@@ -250,22 +217,53 @@ def fill_row(row: int, grid: List[List[int]]) -> None:
         refill_row(row, grid)
 
 
-def fill_board(grid: List[List[int]]) -> None:
+def check_conditions(grid: List[List[int]], number, row, col) -> bool:
     """
-    Fill the starting grid grid going 1 row at a time.
+    Return True if the number number can be a valid solution of the grid grid at the current row row and column col.
+    Return False otherwise.
     """
-    for row in range(len(grid)):
-        fill_row(row, grid)
+    if number not in grid[row]:
+        if number not in (grid[n][col] for n in range(len(grid))):
+            if not check_square(row, col, number, grid):
+                return True
+    return False
 
 
-def create_board() -> List[List[int]]:
+def check_square(row: int, col: int, num: int, grid: List[List[int]]) -> bool:
     """
-    Return a nested list of the 9x9 grid with 0s in every position.
+    Return True if num exists in the current 3x3 square in grid indicated by the current row row and column col.
+    Return False otherwise.
     """
-    grid = []
-    for num in range(9):
-        grid.append([0, 0, 0, 0, 0, 0, 0, 0, 0])
+    first = col // 3 * 3
+    second = first + 3
+    first_range = row // 3 * 3
+    second_range = first_range + 3
+    square = [grid[i][first:second] for i in range(first_range, second_range)]
+
+    if num in (square[0] + square[1] + square[2]):
+        return True
+    return False
+
+
+def refill_row(row: int, grid: List[List[int]]) -> List[List[int]]:
+    """
+    Return a version of the grid grid where all the numbers in the row row are set to 0.
+    """
+    for n in range(9):
+        grid[row][n] = 0
+    fill_row(row, grid)
     return grid
+
+
+def copy_grid(grid: List[List[int]]) -> List[List[int]]:
+    """
+    Return a copy of the current grid given by grid.
+    """
+    copy = create_board()
+    for i in range(9):
+        for j in range(9):
+            copy[i][j] = grid[i][j]
+    return copy
 
 
 def make_starting_board(grid: List[List[int]], to_remove: int) -> None:
@@ -282,15 +280,20 @@ def make_starting_board(grid: List[List[int]], to_remove: int) -> None:
             to_remove -= 1
 
 
-def copy_grid(grid: List[List[int]]) -> List[List[int]]:
+def check_solution(grid: List[List[int]]) -> bool:
     """
-    Return a copy of the current grid given by grid.
+    Return True if the solution in grid is correct and False otherwise.
     """
-    copy = create_board()
-    for i in range(9):
-        for j in range(9):
-            copy[i][j] = grid[i][j]
-    return copy
+    num_list = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    for row, col in itertools.product(range(9), range(9)):
+        for num in num_list:
+            # check if num is in both the current row and column
+            if num not in grid[row] or num not in (grid[n][col] for n in range(len(grid))):
+                return False
+            # check if num is in the current 3x3 square
+            if not check_square(row, col, num, grid):
+                return False
+    return True
 
 
 def format_time(seconds: float) -> str:
@@ -310,7 +313,7 @@ if __name__ == "__main__":
     window = pygame.display.set_mode((540, 600))
     font = pygame.font.SysFont('timesnewroman', 40)
     fill_board(board)
-    copy_board = copy_grid(board)
+    copy_board = copy_grid(board)  # copy of the solution board that should not be modified as the game is played
     remove = 40  # this variable controls how many numbers get removed
     make_starting_board(board, remove)
     grids = Board(9, 9, 450, 450, board, copy_board, window)
@@ -321,6 +324,7 @@ if __name__ == "__main__":
     # keep track of how many moves the player makes
     num_moves = 0
     start = time.time()
+
     while game_running:
         events = pygame.event.get()
         end = time.time()
